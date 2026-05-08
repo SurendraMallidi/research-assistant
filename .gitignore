@@ -1,0 +1,8 @@
+
+# IntelliJ
+.idea/
+*.iml
+
+#Backend
+backend/target/
+

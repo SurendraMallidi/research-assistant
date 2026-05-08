@@ -1,0 +1,91 @@
+package com.research_assistant.service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.research_assistant.dto.GeminiResponse;
+import com.research_assistant.dto.ResearchRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import java.util.Map;
+
+
+@Service
+public class ResearchService {
+
+    @Value("${gemini.api.url}")
+    private String geminiApiUrl;
+
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
+
+    private final WebClient webClient;
+    private final ObjectMapper objectMapper;
+
+    public ResearchService(WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
+        this.webClient = webClientBuilder.build();
+        this.objectMapper = objectMapper;
+    }
+
+    public String processRequest(ResearchRequest researchRequest){
+
+        // Building the Prompt
+        String prompt = buildPrompt(researchRequest);
+        // Query the AI model API
+
+        Map<String, Object> requestBody = Map.of(
+                "contents", new Object[]{
+                        Map.of("parts", new Object[]{
+                                Map.of("text", prompt)
+                        })
+                }
+        );
+        // Parse the Response and return it
+
+        String response = webClient.post()
+                .uri(geminiApiUrl + geminiApiKey)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+        return extractText(response);
+    }
+
+    private String buildPrompt(ResearchRequest researchRequest){
+
+        StringBuilder prompt = new StringBuilder();
+
+        switch (researchRequest.getOperation()){
+            case "summerize":
+                prompt.append("Provide a clear and concise summary of the following text in a few sentences:\n\n");
+                break;
+            case "suggest":
+                prompt.append("Based on the following content: suggest related topics and further reading. Format the response with clear headings and bullet points:\n\n");
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown Operation: " + researchRequest.getOperation());
+        }
+
+        prompt.append(researchRequest.getContent());
+        return prompt.toString();
+
+    }
+
+    private String extractText(String response){
+
+        try{
+            GeminiResponse geminiResponse = objectMapper.readValue(response, GeminiResponse.class);
+            if(geminiResponse.getCandidates() != null && !geminiResponse.getCandidates().isEmpty()){
+                GeminiResponse.Candidate firstCandidate = geminiResponse.getCandidates().getFirst();
+                if(firstCandidate.getContent() != null &&
+                        firstCandidate.getContent().getParts() != null &&
+                !firstCandidate.getContent().getParts().isEmpty())
+                    return firstCandidate.getContent().getParts().getFirst().getText();
+            }
+        }catch (Exception e){
+            return "Error Parsing: " + e.getMessage();
+        }
+
+        return "No content found in the response";
+    }
+}
