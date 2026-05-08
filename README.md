@@ -30,10 +30,12 @@ Make sure the following are available on your machine:
    export GEMINI_KEY="<your-gemini-api-key>"
    ```
 
-2. Start the backend from `/home/runner/work/research-assistant/research-assistant/backend`:
+2. Start the backend from `./backend`:
 
    ```bash
-   sh mvnw spring-boot:run
+   cd backend
+   chmod +x mvnw # only if the wrapper is not already executable
+   ./mvnw spring-boot:run
    ```
 
 3. The service runs on **http://localhost:8091** and exposes the research API at:
@@ -47,7 +49,7 @@ Make sure the following are available on your machine:
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select `/home/runner/work/research-assistant/research-assistant/frontend`.
+4. Select `./frontend`.
 
 Once loaded, the extension side panel can be opened from the browser action.
 
